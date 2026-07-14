@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Phone, Printer, MapPin, Building2, Trash2, LogOut } from 'lucide-react';
+import { Plus, X, Phone, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
+import { Field, Row2 } from './ui';
 
 const CREDENTIAL_OPTIONS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW', 'Other'];
 
@@ -109,88 +110,52 @@ export default function Providers({ session }) {
     if (editingId === id) cancelEdit();
   };
 
-  const signOut = () => supabase.auth.signOut();
-
   return (
-    <div style={{ background: COLORS.bg, minHeight: '100vh', fontFamily: "'Inter', ui-sans-serif, system-ui", color: COLORS.ink }}>
-      <style>{`
-        * { box-sizing: border-box; }
-        input, textarea { font-family: inherit; }
-        input::placeholder, textarea::placeholder { color: ${COLORS.inkFaint}; }
-        button { cursor: pointer; font-family: inherit; }
-        .cm-input {
-          background: ${COLORS.bg}; border: 1px solid ${COLORS.line}; color: ${COLORS.ink};
-          border-radius: 6px; padding: 7px 10px; font-size: 13px; width: 100%;
-        }
-        .cm-input:focus { outline: none; border-color: ${COLORS.accent}; }
-        .cm-row:hover .cm-del { opacity: 1; }
-        .cm-chip {
-          background: ${COLORS.bg}; border: 1px solid ${COLORS.line}; color: ${COLORS.inkDim};
-          border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600;
-        }
-        .cm-chip.active { background: rgba(91,154,160,0.15); border-color: ${COLORS.accent}; color: ${COLORS.accent}; }
-      `}</style>
+    <div>
+      {error && <p style={{ color: COLORS.clay, fontSize: 13, marginTop: 0 }}>{error}</p>}
 
-      <header style={{ borderBottom: `1px solid ${COLORS.line}`, padding: '24px 24px 18px', maxWidth: 720, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 650, letterSpacing: '-0.01em' }}>Providers</h1>
-          <button
-            onClick={signOut}
-            title="Sign out"
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 600, padding: '6px 12px', borderRadius: 6, border: `1px solid ${COLORS.line}`, background: 'transparent', color: COLORS.inkDim }}
-          >
-            <LogOut size={13} /> Sign out
-          </button>
-        </div>
-        <p style={{ margin: '6px 0 0', color: COLORS.inkDim, fontSize: 13, wordBreak: 'break-all' }}>{session.user.email}</p>
-      </header>
-
-      <main style={{ maxWidth: 720, margin: '0 auto', padding: '22px 24px 80px' }}>
-        {error && <p style={{ color: COLORS.clay, fontSize: 13, marginTop: 0 }}>{error}</p>}
-
-        {loading ? (
-          <p style={{ color: COLORS.inkDim, fontSize: 13 }}>Loading…</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {providers.length === 0 && editingId !== 'new' && (
-              <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No providers yet.</p>
-            )}
-            {providers.map((p) =>
-              editingId === p.id ? (
-                <ProviderForm
-                  key={p.id}
-                  draft={draft}
-                  setDraft={setDraft}
-                  onSave={save}
-                  onCancel={cancelEdit}
-                  onRemove={() => remove(p.id)}
-                  saving={saving}
-                />
-              ) : (
-                <ProviderRow key={p.id} provider={p} onEdit={() => startEdit(p)} onRemove={() => remove(p.id)} />
-              )
-            )}
-            {editingId === 'new' && (
+      {loading ? (
+        <p style={{ color: COLORS.inkDim, fontSize: 13 }}>Loading…</p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {providers.length === 0 && editingId !== 'new' && (
+            <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No contacts yet.</p>
+          )}
+          {providers.map((p) =>
+            editingId === p.id ? (
               <ProviderForm
+                key={p.id}
                 draft={draft}
                 setDraft={setDraft}
                 onSave={save}
                 onCancel={cancelEdit}
+                onRemove={() => remove(p.id)}
                 saving={saving}
               />
-            )}
-          </div>
-        )}
+            ) : (
+              <ProviderRow key={p.id} provider={p} onEdit={() => startEdit(p)} onRemove={() => remove(p.id)} />
+            )
+          )}
+          {editingId === 'new' && (
+            <ProviderForm
+              draft={draft}
+              setDraft={setDraft}
+              onSave={save}
+              onCancel={cancelEdit}
+              saving={saving}
+            />
+          )}
+        </div>
+      )}
 
-        {editingId === null && (
-          <button
-            onClick={startAdd}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: `1px dashed ${COLORS.line}`, color: COLORS.inkDim, borderRadius: 8, padding: '11px 16px', fontSize: 13.5, width: '100%', justifyContent: 'center', marginTop: 14 }}
-          >
-            <Plus size={15} /> Add provider
-          </button>
-        )}
-      </main>
+      {editingId === null && (
+        <button
+          onClick={startAdd}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: `1px dashed ${COLORS.line}`, color: COLORS.inkDim, borderRadius: 8, padding: '11px 16px', fontSize: 13.5, width: '100%', justifyContent: 'center', marginTop: 14 }}
+        >
+          <Plus size={15} /> Add contact
+        </button>
+      )}
     </div>
   );
 }
@@ -319,15 +284,3 @@ function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
   );
 }
 
-function Field({ label, children }) {
-  return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 11.5, color: COLORS.inkDim }}>
-      {label}
-      {children}
-    </label>
-  );
-}
-
-function Row2({ children }) {
-  return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>{children}</div>;
-}

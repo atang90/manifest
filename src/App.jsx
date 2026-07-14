@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
 import Auth from './Auth';
-import Providers from './Providers';
+import Home from './Home';
 
 export default function App() {
   const [session, setSession] = useState(undefined); // undefined = loading, null = logged out
@@ -23,5 +23,5 @@ export default function App() {
     );
   }
 
-  return session ? <Providers session={session} /> : <Auth />;
+  return session ? <Home session={session} /> : <Auth />;
 }
