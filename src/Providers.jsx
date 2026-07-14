@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Phone, Mail, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, RowCityStateZip, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, RowCityStateZip, CollapsibleSection, useDragReorder, persistOrder, DragHandle } from './ui';
 
 const FIXED_CREDENTIALS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW'];
 
@@ -324,41 +324,54 @@ function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
 
   return (
     <div style={{ background: COLORS.panelRaised, border: `1px solid ${COLORS.accent}`, borderRadius: 7, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <Row2>
-        <Field label="First name"><input className="cm-input" value={draft.first_name} onChange={set('first_name')} placeholder="Jane" autoFocus /></Field>
-        <Field label="Last name"><input className="cm-input" value={draft.last_name} onChange={set('last_name')} placeholder="Smith" /></Field>
-      </Row2>
+      <CollapsibleSection title="Name">
+        <Row2>
+          <Field label="First name"><input className="cm-input" value={draft.first_name} onChange={set('first_name')} placeholder="Jane" autoFocus /></Field>
+          <Field label="Last name"><input className="cm-input" value={draft.last_name} onChange={set('last_name')} placeholder="Smith" /></Field>
+        </Row2>
+        <CredentialsSelect value={draft.credentials} onChange={(credentials) => setDraft((d) => ({ ...d, credentials }))} />
+      </CollapsibleSection>
 
-      <CredentialsSelect value={draft.credentials} onChange={(credentials) => setDraft((d) => ({ ...d, credentials }))} />
+      <CollapsibleSection title="Work">
+        <Row2>
+          <Field label="Specialty"><input className="cm-input" value={draft.specialty} onChange={set('specialty')} placeholder="Oncologist, Primary care…" /></Field>
+          <Field label="Hospital / practice"><input className="cm-input" value={draft.hospital} onChange={set('hospital')} placeholder="Who they work for" /></Field>
+        </Row2>
+        <Field label="Role"><input className="cm-input" value={draft.role} onChange={set('role')} placeholder="Primary, Secondary…" /></Field>
+      </CollapsibleSection>
 
-      <Row2>
-        <Field label="Specialty"><input className="cm-input" value={draft.specialty} onChange={set('specialty')} placeholder="Oncologist, Primary care…" /></Field>
-        <Field label="Hospital / practice"><input className="cm-input" value={draft.hospital} onChange={set('hospital')} placeholder="Who they work for" /></Field>
-      </Row2>
-      <Field label="Address"><input className="cm-input" value={draft.address} onChange={set('address')} placeholder="Street address" /></Field>
-      <RowCityStateZip>
-        <Field label="City"><input className="cm-input" value={draft.address_city} onChange={set('address_city')} placeholder="City" /></Field>
-        <Field label="State"><input className="cm-input" value={draft.address_state} onChange={set('address_state')} placeholder="State" /></Field>
-        <Field label="Zip"><input className="cm-input" value={draft.address_zip} onChange={set('address_zip')} placeholder="Zip" /></Field>
-      </RowCityStateZip>
+      <CollapsibleSection title="Address">
+        <Field label="Address"><input className="cm-input" value={draft.address} onChange={set('address')} placeholder="Street address" /></Field>
+        <RowCityStateZip>
+          <Field label="City"><input className="cm-input" value={draft.address_city} onChange={set('address_city')} placeholder="City" /></Field>
+          <Field label="State"><input className="cm-input" value={draft.address_state} onChange={set('address_state')} placeholder="State" /></Field>
+          <Field label="Zip"><input className="cm-input" value={draft.address_zip} onChange={set('address_zip')} placeholder="Zip" /></Field>
+        </RowCityStateZip>
+      </CollapsibleSection>
 
-      <Field label="Address 2"><input className="cm-input" value={draft.address_2} onChange={set('address_2')} placeholder="Second location, suite, floor…" /></Field>
-      <RowCityStateZip>
-        <Field label="City"><input className="cm-input" value={draft.address_2_city} onChange={set('address_2_city')} placeholder="City" /></Field>
-        <Field label="State"><input className="cm-input" value={draft.address_2_state} onChange={set('address_2_state')} placeholder="State" /></Field>
-        <Field label="Zip"><input className="cm-input" value={draft.address_2_zip} onChange={set('address_2_zip')} placeholder="Zip" /></Field>
-      </RowCityStateZip>
+      <CollapsibleSection title="Address 2">
+        <Field label="Address 2"><input className="cm-input" value={draft.address_2} onChange={set('address_2')} placeholder="Second location, suite, floor…" /></Field>
+        <RowCityStateZip>
+          <Field label="City"><input className="cm-input" value={draft.address_2_city} onChange={set('address_2_city')} placeholder="City" /></Field>
+          <Field label="State"><input className="cm-input" value={draft.address_2_state} onChange={set('address_2_state')} placeholder="State" /></Field>
+          <Field label="Zip"><input className="cm-input" value={draft.address_2_zip} onChange={set('address_2_zip')} placeholder="Zip" /></Field>
+        </RowCityStateZip>
+      </CollapsibleSection>
 
-      <Row2>
-        <Field label="Phone"><input className="cm-input" value={draft.phone} onChange={set('phone')} placeholder="(000) 000-0000" /></Field>
-        <Field label="Phone 2"><input className="cm-input" value={draft.phone_2} onChange={set('phone_2')} placeholder="(000) 000-0000" /></Field>
-      </Row2>
-      <Row2>
-        <Field label="Fax"><input className="cm-input" value={draft.fax} onChange={set('fax')} placeholder="(000) 000-0000" /></Field>
-        <Field label="Email"><input className="cm-input" type="email" value={draft.email} onChange={set('email')} placeholder="name@example.com" /></Field>
-      </Row2>
-      <Field label="Role"><input className="cm-input" value={draft.role} onChange={set('role')} placeholder="Primary, Secondary…" /></Field>
-      <Field label="Notes"><textarea className="cm-input" rows={2} value={draft.notes} onChange={set('notes')} placeholder="Office hours, portal login, etc." /></Field>
+      <CollapsibleSection title="Contact info">
+        <Row2>
+          <Field label="Phone"><input className="cm-input" value={draft.phone} onChange={set('phone')} placeholder="(000) 000-0000" /></Field>
+          <Field label="Phone 2"><input className="cm-input" value={draft.phone_2} onChange={set('phone_2')} placeholder="(000) 000-0000" /></Field>
+        </Row2>
+        <Row2>
+          <Field label="Fax"><input className="cm-input" value={draft.fax} onChange={set('fax')} placeholder="(000) 000-0000" /></Field>
+          <Field label="Email"><input className="cm-input" type="email" value={draft.email} onChange={set('email')} placeholder="name@example.com" /></Field>
+        </Row2>
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Notes">
+        <Field label="Notes"><textarea className="cm-input" rows={2} value={draft.notes} onChange={set('notes')} placeholder="Office hours, portal login, etc." /></Field>
+      </CollapsibleSection>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
         {onRemove ? (

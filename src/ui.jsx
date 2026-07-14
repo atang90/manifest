@@ -1,5 +1,5 @@
-import React from 'react';
-import { GripVertical } from 'lucide-react';
+import React, { useState } from 'react';
+import { GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { COLORS } from './theme';
 
 export function GlobalStyles() {
@@ -40,6 +40,29 @@ export function Row2({ children }) {
 // City / State / Zip: city gets the most room, state and zip are short.
 export function RowCityStateZip({ children }) {
   return <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>{children}</div>;
+}
+
+// A labeled, collapsible group of fields within a longer edit form.
+// Open by default; the toggle state is local to this form instance.
+export function CollapsibleSection({ title, defaultOpen = true, children }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, width: '100%', background: 'none', border: 'none',
+          padding: '2px 0 6px', color: COLORS.inkDim, fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+          letterSpacing: '0.06em', textAlign: 'left',
+        }}
+      >
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        {title}
+      </button>
+      {open && <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>{children}</div>}
+    </div>
+  );
 }
 
 // Native HTML5 drag-and-drop reordering, driven by a grip handle on each row.
