@@ -37,6 +37,11 @@ export function Row2({ children }) {
   return <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>{children}</div>;
 }
 
+// City / State / Zip: city gets the most room, state and zip are short.
+export function RowCityStateZip({ children }) {
+  return <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8 }}>{children}</div>;
+}
+
 // Native HTML5 drag-and-drop reordering, driven by a grip handle on each row.
 // `items`/`setItems` is the list's local state; `persist(next)` is called
 // with the reordered array so the caller can save the new order.

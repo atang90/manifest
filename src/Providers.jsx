@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Phone, Mail, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, RowCityStateZip, useDragReorder, persistOrder, DragHandle } from './ui';
 
 const FIXED_CREDENTIALS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW'];
 
@@ -13,7 +13,13 @@ const BLANK = {
   specialty: '',
   hospital: '',
   address: '',
+  address_city: '',
+  address_state: '',
+  address_zip: '',
   address_2: '',
+  address_2_city: '',
+  address_2_state: '',
+  address_2_zip: '',
   role: '',
   email: '',
   phone: '',
@@ -59,7 +65,13 @@ export default function Providers({ session }) {
       specialty: p.specialty,
       hospital: p.hospital,
       address: p.address,
+      address_city: p.address_city,
+      address_state: p.address_state,
+      address_zip: p.address_zip,
       address_2: p.address_2,
+      address_2_city: p.address_2_city,
+      address_2_state: p.address_2_state,
+      address_2_zip: p.address_2_zip,
       role: p.role,
       email: p.email,
       phone: p.phone,
@@ -186,6 +198,15 @@ function fullName(provider) {
   return { name: name || 'Unnamed', creds };
 }
 
+function cityStateZip(city, state, zip) {
+  const cs = [city, state].filter(Boolean).join(', ');
+  return [cs, zip].filter(Boolean).join(' ');
+}
+
+function fullAddress(street, city, state, zip) {
+  return [street, cityStateZip(city, state, zip)].filter(Boolean).join(', ');
+}
+
 function ProviderRow({ provider, onEdit, onRemove, onDragStart, onDragOver, onDrop }) {
   const { name, creds } = fullName(provider);
   return (
@@ -211,7 +232,7 @@ function ProviderRow({ provider, onEdit, onRemove, onDragStart, onDragOver, onDr
       )}
       {provider.address && (
         <span style={{ fontSize: 11.5, color: COLORS.inkFaint, display: 'flex', alignItems: 'center', gap: 3 }}>
-          <MapPin size={10} /> {provider.address}
+          <MapPin size={10} /> {fullAddress(provider.address, provider.address_city, provider.address_state, provider.address_zip)}
         </span>
       )}
       <span style={{ flex: 1 }} />
@@ -314,10 +335,20 @@ function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
         <Field label="Specialty"><input className="cm-input" value={draft.specialty} onChange={set('specialty')} placeholder="Oncologist, Primary care…" /></Field>
         <Field label="Hospital / practice"><input className="cm-input" value={draft.hospital} onChange={set('hospital')} placeholder="Who they work for" /></Field>
       </Row2>
-      <Row2>
-        <Field label="Address"><input className="cm-input" value={draft.address} onChange={set('address')} placeholder="Street address" /></Field>
-        <Field label="Address 2"><input className="cm-input" value={draft.address_2} onChange={set('address_2')} placeholder="Suite, floor, second location…" /></Field>
-      </Row2>
+      <Field label="Address"><input className="cm-input" value={draft.address} onChange={set('address')} placeholder="Street address" /></Field>
+      <RowCityStateZip>
+        <Field label="City"><input className="cm-input" value={draft.address_city} onChange={set('address_city')} placeholder="City" /></Field>
+        <Field label="State"><input className="cm-input" value={draft.address_state} onChange={set('address_state')} placeholder="State" /></Field>
+        <Field label="Zip"><input className="cm-input" value={draft.address_zip} onChange={set('address_zip')} placeholder="Zip" /></Field>
+      </RowCityStateZip>
+
+      <Field label="Address 2"><input className="cm-input" value={draft.address_2} onChange={set('address_2')} placeholder="Second location, suite, floor…" /></Field>
+      <RowCityStateZip>
+        <Field label="City"><input className="cm-input" value={draft.address_2_city} onChange={set('address_2_city')} placeholder="City" /></Field>
+        <Field label="State"><input className="cm-input" value={draft.address_2_state} onChange={set('address_2_state')} placeholder="State" /></Field>
+        <Field label="Zip"><input className="cm-input" value={draft.address_2_zip} onChange={set('address_2_zip')} placeholder="Zip" /></Field>
+      </RowCityStateZip>
+
       <Row2>
         <Field label="Phone"><input className="cm-input" value={draft.phone} onChange={set('phone')} placeholder="(000) 000-0000" /></Field>
         <Field label="Phone 2"><input className="cm-input" value={draft.phone_2} onChange={set('phone_2')} placeholder="(000) 000-0000" /></Field>
