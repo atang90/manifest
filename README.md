@@ -1,6 +1,6 @@
-# Providers
+# Manifest
 
-A single-purpose PWA for keeping a personal list of healthcare providers (name, credentials, hospital, specialty, address, role, phone, fax, notes). Email/password auth and storage via Supabase, each user only sees their own data via Row Level Security.
+A personal organizer PWA: Contacts (name, credentials, hospital, specialty, address, role, phone, fax, notes, email), Tracked Items (recurring things with flexible custom fields), and Notes (free-text journal entries). Email/password auth and storage via Supabase, each user only sees their own data via Row Level Security.
 
 ## Stack
 
@@ -46,5 +46,5 @@ npm run preview   # serve the production build locally
 
 ## Notes
 
-- By default Supabase requires email confirmation before a new account can sign in. If you want to skip that for testing, go to **Authentication -> Providers -> Email** in the Supabase dashboard and disable "Confirm email".
-- Scope is intentionally minimal: login + a single Providers table. No insurance, appointments, tasks, documents, or audit logging.
+- By default Supabase requires email confirmation before a new account can sign in. If you want to skip that for testing, go to **Authentication -> Providers -> Email** in the Supabase dashboard and disable "Confirm email". (That "Providers" is Supabase's own auth-providers section — unrelated to this app's Contacts tab.)
+- Three tabs today: Contacts, Tracked Items, Notes. All support drag-to-reorder.

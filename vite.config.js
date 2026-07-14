@@ -11,9 +11,9 @@ export default defineConfig({
       includeAssets: ['favicon.png', 'icons/apple-touch-icon.png'],
       manifestFilename: 'manifest.json',
       manifest: {
-        name: 'Providers',
-        short_name: 'Providers',
-        description: 'A simple provider directory.',
+        name: 'Manifest',
+        short_name: 'Manifest',
+        description: 'A personal directory of contacts, tracked items, and notes.',
         start_url: '/',
         display: 'standalone',
         background_color: '#12181B',

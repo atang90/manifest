@@ -42,7 +42,7 @@ export default function Auth() {
         button { cursor: pointer; font-family: inherit; }
       `}</style>
       <div style={{ width: '100%', maxWidth: 360, background: COLORS.panel, border: `1px solid ${COLORS.line}`, borderRadius: 12, padding: 28 }}>
-        <h1 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 650, letterSpacing: '-0.01em' }}>Providers</h1>
+        <h1 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 650, letterSpacing: '-0.01em' }}>Manifest</h1>
         <p style={{ margin: '0 0 20px', color: COLORS.inkDim, fontSize: 13 }}>
           {mode === 'signin' ? 'Sign in to your account' : 'Create an account'}
         </p>
