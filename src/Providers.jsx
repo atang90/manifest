@@ -1,9 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Phone, MapPin, Trash2, LogOut } from 'lucide-react';
+import { Plus, X, Phone, Printer, MapPin, Building2, Trash2, LogOut } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
 
-const BLANK = { name: '', specialty: '', location: '', phone: '', notes: '' };
+const CREDENTIAL_OPTIONS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW', 'Other'];
+
+const BLANK = {
+  first_name: '',
+  last_name: '',
+  credentials: [],
+  specialty: '',
+  hospital: '',
+  address: '',
+  role: '',
+  phone: '',
+  fax: '',
+  notes: '',
+};
 
 export default function Providers({ session }) {
   const [providers, setProviders] = useState([]);
@@ -35,7 +48,18 @@ export default function Providers({ session }) {
   };
 
   const startEdit = (p) => {
-    setDraft({ name: p.name, specialty: p.specialty, location: p.location, phone: p.phone, notes: p.notes });
+    setDraft({
+      first_name: p.first_name,
+      last_name: p.last_name,
+      credentials: p.credentials || [],
+      specialty: p.specialty,
+      hospital: p.hospital,
+      address: p.address,
+      role: p.role,
+      phone: p.phone,
+      fax: p.fax,
+      notes: p.notes,
+    });
     setEditingId(p.id);
   };
 
@@ -100,6 +124,11 @@ export default function Providers({ session }) {
         }
         .cm-input:focus { outline: none; border-color: ${COLORS.accent}; }
         .cm-row:hover .cm-del { opacity: 1; }
+        .cm-chip {
+          background: ${COLORS.bg}; border: 1px solid ${COLORS.line}; color: ${COLORS.inkDim};
+          border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600;
+        }
+        .cm-chip.active { background: rgba(91,154,160,0.15); border-color: ${COLORS.accent}; color: ${COLORS.accent}; }
       `}</style>
 
       <header style={{ borderBottom: `1px solid ${COLORS.line}`, padding: '24px 24px 18px', maxWidth: 720, margin: '0 auto' }}>
@@ -166,24 +195,46 @@ export default function Providers({ session }) {
   );
 }
 
+function fullName(provider) {
+  const name = [provider.first_name, provider.last_name].filter(Boolean).join(' ');
+  const creds = (provider.credentials || []).join(', ');
+  return { name: name || 'Unnamed', creds };
+}
+
 function ProviderRow({ provider, onEdit, onRemove }) {
+  const { name, creds } = fullName(provider);
   return (
     <div
       className="cm-row"
       onClick={onEdit}
       style={{ display: 'flex', alignItems: 'baseline', gap: 10, background: COLORS.panelRaised, border: `1px solid ${COLORS.line}`, borderRadius: 7, padding: '10px 12px', cursor: 'pointer', flexWrap: 'wrap' }}
     >
-      <span style={{ fontSize: 13.5, fontWeight: 550 }}>{provider.name || 'Unnamed'}</span>
+      <span style={{ fontSize: 13.5, fontWeight: 550 }}>
+        {name}{creds && <span style={{ color: COLORS.inkDim, fontWeight: 500 }}>, {creds}</span>}
+      </span>
+      {provider.role && (
+        <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{provider.role}</span>
+      )}
       {provider.specialty && <span style={{ fontSize: 12, color: COLORS.inkDim }}>{provider.specialty}</span>}
-      {provider.location && (
+      {provider.hospital && (
         <span style={{ fontSize: 11.5, color: COLORS.inkFaint, display: 'flex', alignItems: 'center', gap: 3 }}>
-          <MapPin size={10} /> {provider.location}
+          <Building2 size={10} /> {provider.hospital}
+        </span>
+      )}
+      {provider.address && (
+        <span style={{ fontSize: 11.5, color: COLORS.inkFaint, display: 'flex', alignItems: 'center', gap: 3 }}>
+          <MapPin size={10} /> {provider.address}
         </span>
       )}
       <span style={{ flex: 1 }} />
       {provider.phone && (
         <span style={{ fontSize: 12, color: COLORS.inkDim, display: 'flex', alignItems: 'center', gap: 4 }}>
           <Phone size={11} /> {provider.phone}
+        </span>
+      )}
+      {provider.fax && (
+        <span style={{ fontSize: 12, color: COLORS.inkDim, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Printer size={11} /> {provider.fax}
         </span>
       )}
       <button
@@ -197,18 +248,51 @@ function ProviderRow({ provider, onEdit, onRemove }) {
   );
 }
 
+function CredentialsSelect({ value = [], onChange }) {
+  const toggle = (cred) => {
+    onChange(value.includes(cred) ? value.filter((c) => c !== cred) : [...value, cred]);
+  };
+  return (
+    <Field label="Credentials">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        {CREDENTIAL_OPTIONS.map((cred) => (
+          <button
+            type="button"
+            key={cred}
+            className={`cm-chip${value.includes(cred) ? ' active' : ''}`}
+            onClick={() => toggle(cred)}
+          >
+            {cred}
+          </button>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
 function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
   const set = (k) => (e) => setDraft((d) => ({ ...d, [k]: e.target.value }));
 
   return (
     <div style={{ background: COLORS.panelRaised, border: `1px solid ${COLORS.accent}`, borderRadius: 7, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <Row2>
-        <Field label="Name"><input className="cm-input" value={draft.name} onChange={set('name')} placeholder="Dr. Jane Smith" autoFocus /></Field>
+        <Field label="First name"><input className="cm-input" value={draft.first_name} onChange={set('first_name')} placeholder="Jane" autoFocus /></Field>
+        <Field label="Last name"><input className="cm-input" value={draft.last_name} onChange={set('last_name')} placeholder="Smith" /></Field>
+      </Row2>
+
+      <CredentialsSelect value={draft.credentials} onChange={(credentials) => setDraft((d) => ({ ...d, credentials }))} />
+
+      <Row2>
         <Field label="Specialty"><input className="cm-input" value={draft.specialty} onChange={set('specialty')} placeholder="Oncologist, Primary care…" /></Field>
+        <Field label="Hospital / practice"><input className="cm-input" value={draft.hospital} onChange={set('hospital')} placeholder="Who they work for" /></Field>
       </Row2>
       <Row2>
-        <Field label="Location"><input className="cm-input" value={draft.location} onChange={set('location')} placeholder="Clinic / hospital name" /></Field>
+        <Field label="Address"><input className="cm-input" value={draft.address} onChange={set('address')} placeholder="Street address" /></Field>
+        <Field label="Role"><input className="cm-input" value={draft.role} onChange={set('role')} placeholder="Primary, Secondary…" /></Field>
+      </Row2>
+      <Row2>
         <Field label="Phone"><input className="cm-input" value={draft.phone} onChange={set('phone')} placeholder="(000) 000-0000" /></Field>
+        <Field label="Fax"><input className="cm-input" value={draft.fax} onChange={set('fax')} placeholder="(000) 000-0000" /></Field>
       </Row2>
       <Field label="Notes"><textarea className="cm-input" rows={2} value={draft.notes} onChange={set('notes')} placeholder="Office hours, portal login, etc." /></Field>
 

@@ -1,6 +1,6 @@
 # Providers
 
-A single-purpose PWA for keeping a personal list of healthcare providers (name, specialty, location, phone, notes). Email/password auth and storage via Supabase, each user only sees their own data via Row Level Security.
+A single-purpose PWA for keeping a personal list of healthcare providers (name, credentials, hospital, specialty, address, role, phone, fax, notes). Email/password auth and storage via Supabase, each user only sees their own data via Row Level Security.
 
 ## Stack
 
@@ -10,7 +10,7 @@ A single-purpose PWA for keeping a personal list of healthcare providers (name, 
 
 ## 1. Set up the database
 
-In your Supabase project dashboard, go to **SQL Editor -> New query**, paste the contents of [`supabase/schema.sql`](supabase/schema.sql), and run it. This creates the `providers` table and RLS policies so each user can only read/write their own rows.
+In your Supabase project dashboard, go to **SQL Editor -> New query**. Run each file in [`supabase/migrations/`](supabase/migrations) in order (001, 002, ...) — paste the contents and click Run. Each one is a small, one-time change; run any new ones that show up after a `git pull` too.
 
 ## 2. Configure environment variables
 
