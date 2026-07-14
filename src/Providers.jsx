@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, X, Phone, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
+import { Plus, X, Phone, Mail, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
 import { Field, Row2, useDragReorder, persistOrder, DragHandle } from './ui';
 
-const CREDENTIAL_OPTIONS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW', 'Other'];
+const FIXED_CREDENTIALS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW'];
 
 const BLANK = {
   first_name: '',
@@ -13,8 +13,11 @@ const BLANK = {
   specialty: '',
   hospital: '',
   address: '',
+  address_2: '',
   role: '',
+  email: '',
   phone: '',
+  phone_2: '',
   fax: '',
   notes: '',
 };
@@ -56,8 +59,11 @@ export default function Providers({ session }) {
       specialty: p.specialty,
       hospital: p.hospital,
       address: p.address,
+      address_2: p.address_2,
       role: p.role,
+      email: p.email,
       phone: p.phone,
+      phone_2: p.phone_2,
       fax: p.fax,
       notes: p.notes,
     });
@@ -219,6 +225,11 @@ function ProviderRow({ provider, onEdit, onRemove, onDragStart, onDragOver, onDr
           <Printer size={11} /> {provider.fax}
         </span>
       )}
+      {provider.email && (
+        <span style={{ fontSize: 12, color: COLORS.inkDim, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Mail size={11} /> {provider.email}
+        </span>
+      )}
       <button
         className="cm-del"
         onClick={(e) => { e.stopPropagation(); onRemove(); }}
@@ -231,23 +242,58 @@ function ProviderRow({ provider, onEdit, onRemove, onDragStart, onDragOver, onDr
 }
 
 function CredentialsSelect({ value = [], onChange }) {
-  const toggle = (cred) => {
+  const customValue = value.find((c) => !FIXED_CREDENTIALS.includes(c)) || '';
+  const [otherOpen, setOtherOpen] = useState(customValue !== '');
+
+  const toggleFixed = (cred) => {
     onChange(value.includes(cred) ? value.filter((c) => c !== cred) : [...value, cred]);
   };
+
+  const toggleOther = () => {
+    if (otherOpen) {
+      setOtherOpen(false);
+      onChange(value.filter((c) => FIXED_CREDENTIALS.includes(c)));
+    } else {
+      setOtherOpen(true);
+    }
+  };
+
+  const setCustom = (text) => {
+    const fixedOnly = value.filter((c) => FIXED_CREDENTIALS.includes(c));
+    onChange(text ? [...fixedOnly, text] : fixedOnly);
+  };
+
   return (
     <Field label="Credentials">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-        {CREDENTIAL_OPTIONS.map((cred) => (
+        {FIXED_CREDENTIALS.map((cred) => (
           <button
             type="button"
             key={cred}
             className={`cm-chip${value.includes(cred) ? ' active' : ''}`}
-            onClick={() => toggle(cred)}
+            onClick={() => toggleFixed(cred)}
           >
             {cred}
           </button>
         ))}
+        <button
+          type="button"
+          className={`cm-chip${otherOpen ? ' active' : ''}`}
+          onClick={toggleOther}
+        >
+          Other
+        </button>
       </div>
+      {otherOpen && (
+        <input
+          className="cm-input"
+          style={{ marginTop: 6 }}
+          value={customValue}
+          onChange={(e) => setCustom(e.target.value)}
+          placeholder="Enter credential"
+          autoFocus
+        />
+      )}
     </Field>
   );
 }
@@ -270,12 +316,17 @@ function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
       </Row2>
       <Row2>
         <Field label="Address"><input className="cm-input" value={draft.address} onChange={set('address')} placeholder="Street address" /></Field>
-        <Field label="Role"><input className="cm-input" value={draft.role} onChange={set('role')} placeholder="Primary, Secondary…" /></Field>
+        <Field label="Address 2"><input className="cm-input" value={draft.address_2} onChange={set('address_2')} placeholder="Suite, floor, second location…" /></Field>
       </Row2>
       <Row2>
         <Field label="Phone"><input className="cm-input" value={draft.phone} onChange={set('phone')} placeholder="(000) 000-0000" /></Field>
-        <Field label="Fax"><input className="cm-input" value={draft.fax} onChange={set('fax')} placeholder="(000) 000-0000" /></Field>
+        <Field label="Phone 2"><input className="cm-input" value={draft.phone_2} onChange={set('phone_2')} placeholder="(000) 000-0000" /></Field>
       </Row2>
+      <Row2>
+        <Field label="Fax"><input className="cm-input" value={draft.fax} onChange={set('fax')} placeholder="(000) 000-0000" /></Field>
+        <Field label="Email"><input className="cm-input" type="email" value={draft.email} onChange={set('email')} placeholder="name@example.com" /></Field>
+      </Row2>
+      <Field label="Role"><input className="cm-input" value={draft.role} onChange={set('role')} placeholder="Primary, Secondary…" /></Field>
       <Field label="Notes"><textarea className="cm-input" rows={2} value={draft.notes} onChange={set('notes')} placeholder="Office hours, portal login, etc." /></Field>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
