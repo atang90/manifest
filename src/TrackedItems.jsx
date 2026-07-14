@@ -186,11 +186,18 @@ function DetailsEditor({ details = [], onChange }) {
   const update = (i, patch) => onChange(details.map((d, idx) => (idx === i ? { ...d, ...patch } : d)));
   const add = () => onChange([...details, { label: '', value: '' }]);
   const remove = (i) => onChange(details.filter((_, idx) => idx !== i));
+  const { handleDragStart, handleDragOver, handleDrop } = useDragReorder(details, onChange, () => {});
   return (
     <Field label="Details">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {details.map((d, i) => (
-          <div key={i} style={{ display: 'flex', gap: 6 }}>
+          <div
+            key={i}
+            onDragOver={handleDragOver}
+            onDrop={handleDrop(i)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            <DragHandle onDragStart={handleDragStart(i)} />
             <input className="cm-input" style={{ flex: '0 0 110px' }} placeholder="Label (e.g. Dose)" value={d.label} onChange={(e) => update(i, { label: e.target.value })} />
             <input className="cm-input" placeholder="Value" value={d.value} onChange={(e) => update(i, { value: e.target.value })} />
             <button onClick={() => remove(i)} style={{ background: 'none', border: 'none', color: COLORS.inkFaint, padding: 4 }}><X size={13} /></button>
