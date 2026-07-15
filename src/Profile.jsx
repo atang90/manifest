@@ -97,7 +97,73 @@ export default function Profile({ session, onClose }) {
             {saving ? 'Updating…' : 'Update password'}
           </button>
         </form>
+
+        <DangerZone session={session} />
       </div>
+    </div>
+  );
+}
+
+// Deleting sets a flag rather than removing the account or its data (see
+// [[manifest_backlog]] recoverable-delete pattern) -- signs out locally right
+// after, so recovery is an admin-only action (a SQL update), not something
+// reachable from inside the app once deleted.
+function DangerZone({ session }) {
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+
+  const deleteAccount = async () => {
+    setDeleting(true);
+    setError('');
+    try {
+      const { error: upsertError } = await supabase
+        .from('user_settings')
+        .upsert({ user_id: session.user.id, deleted_at: new Date().toISOString() });
+      if (upsertError) throw upsertError;
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      setError(err.message || 'Failed to delete account');
+      setDeleting(false);
+    }
+  };
+
+  return (
+    <div style={{ marginTop: 22, paddingTop: 16, borderTop: `1px solid ${COLORS.line}` }}>
+      <h3 style={{ margin: '0 0 8px', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: COLORS.clay }}>
+        Danger zone
+      </h3>
+      {!confirming ? (
+        <button
+          onClick={() => setConfirming(true)}
+          style={{ background: 'none', border: `1px solid ${COLORS.clay}`, color: COLORS.clay, fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 6 }}
+        >
+          Delete account
+        </button>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0, fontSize: 12.5, color: COLORS.inkDim }}>
+            Your account will be locked and your data hidden immediately. This can only be reversed by the app administrator, not from within the app.
+          </p>
+          {error && <p style={{ margin: 0, color: COLORS.clay, fontSize: 12.5 }}>{error}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={deleting}
+              style={{ background: 'none', border: `1px solid ${COLORS.line}`, color: COLORS.inkDim, fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 6 }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={deleteAccount}
+              disabled={deleting}
+              style={{ background: COLORS.clay, border: 'none', color: '#0E1416', fontSize: 12.5, fontWeight: 600, padding: '7px 14px', borderRadius: 6, opacity: deleting ? 0.6 : 1 }}
+            >
+              {deleting ? 'Deleting…' : 'Yes, delete my account'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
