@@ -122,6 +122,7 @@ export default function Providers({ session }) {
   };
 
   const remove = async (id) => {
+    if (!window.confirm('Delete this contact? This cannot be undone.')) return;
     const prev = providers;
     setProviders((p) => p.filter((x) => x.id !== id));
     const { error: deleteError } = await supabase.from('providers').delete().eq('id', id);

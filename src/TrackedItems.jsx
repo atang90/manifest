@@ -76,6 +76,7 @@ export default function TrackedItems({ session }) {
   };
 
   const remove = async (id) => {
+    if (!window.confirm('Delete this tracked item? This cannot be undone.')) return;
     const prev = items;
     setItems((it) => it.filter((x) => x.id !== id));
     const { error: deleteError } = await supabase.from('tracked_items').delete().eq('id', id);

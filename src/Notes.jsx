@@ -134,6 +134,7 @@ export default function Notes({ session }) {
   };
 
   const remove = async (id) => {
+    if (!window.confirm('Delete this note? This cannot be undone.')) return;
     const prev = notes;
     setNotes((n) => n.filter((x) => x.id !== id));
     const { error: deleteError } = await supabase.from('notes').delete().eq('id', id);
