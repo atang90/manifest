@@ -24,7 +24,7 @@ function tabsFromOrder(saved) {
 }
 
 export default function Home({ session }) {
-  const [tab, setTab] = useState('contacts');
+  const [tab, setTab] = useState(null);
   const [tabs, setTabs] = useState(null); // null = still loading from Supabase
 
   useEffect(() => {
@@ -36,7 +36,9 @@ export default function Home({ session }) {
       .maybeSingle()
       .then(({ data }) => {
         if (cancelled) return;
-        setTabs(tabsFromOrder(data?.tab_order));
+        const loaded = tabsFromOrder(data?.tab_order);
+        setTabs(loaded);
+        setTab(loaded[0].key);
       });
     return () => { cancelled = true; };
   }, [session.user.id]);
