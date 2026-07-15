@@ -208,3 +208,45 @@ export function TagsEditor({ tags = [], onChange }) {
     </Field>
   );
 }
+
+// A single accent color per row (e.g. "this is high importance"), separate
+// from the freeform multi-tag system -- shown as a stripe on the row itself
+// via rowColorStyle rather than a labeled pill.
+export function ColorPicker({ value, onChange, label = 'Row color' }) {
+  return (
+    <Field label={label}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          title="No color"
+          style={{
+            width: 20, height: 20, borderRadius: '50%', background: COLORS.bg, padding: 0,
+            border: `2px solid ${value ? COLORS.line : COLORS.ink}`,
+          }}
+        />
+        {TAG_COLORS.map((c) => (
+          <button
+            type="button"
+            key={c}
+            onClick={() => onChange(c)}
+            title={c}
+            style={{
+              width: 20, height: 20, borderRadius: '50%', background: c, padding: 0,
+              border: `2px solid ${value === c ? COLORS.ink : 'transparent'}`,
+            }}
+          />
+        ))}
+      </div>
+    </Field>
+  );
+}
+
+// Renders a row's chosen color as a thicker left edge; falls back to the
+// normal border on all sides when no color is set.
+export function rowColorStyle(color) {
+  return {
+    border: `1px solid ${COLORS.line}`,
+    borderLeft: `3px solid ${color || COLORS.line}`,
+  };
+}

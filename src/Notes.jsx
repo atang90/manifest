@@ -2,9 +2,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X, Trash2, Link2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle } from './ui';
 
-const BLANK = { title: '', body: '', entry_date: '' };
+const BLANK = { title: '', body: '', entry_date: '', color: '' };
 
 // Mentions are stored inline in the body as @[Label](type:id).
 // Rendering resolves each one against the live pool, falling back to the
@@ -93,7 +93,7 @@ export default function Notes({ session }) {
   };
 
   const startEdit = (n) => {
-    setDraft({ title: n.title, body: n.body, entry_date: n.entry_date || '' });
+    setDraft({ title: n.title, body: n.body, entry_date: n.entry_date || '', color: n.color || '' });
     setEditingId(n.id);
   };
 
@@ -213,7 +213,7 @@ function NoteRow({ note, mentionPool, onEdit, onRemove, onDragStart, onDragOver,
       onClick={onEdit}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      style={{ background: COLORS.panelRaised, border: `1px solid ${COLORS.line}`, borderRadius: 7, padding: '10px 12px', cursor: 'pointer' }}
+      style={{ background: COLORS.panelRaised, ...rowColorStyle(note.color), borderRadius: 7, padding: '10px 12px', cursor: 'pointer' }}
     >
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
         <DragHandle onDragStart={onDragStart} />
@@ -472,6 +472,7 @@ function NoteForm({ draft, setDraft, onSave, onCancel, onRemove, saving, mention
       <Field label="Notes">
         <MentionEditor value={draft.body} onChange={(body) => setDraft((d) => ({ ...d, body }))} mentionPool={mentionPool} />
       </Field>
+      <ColorPicker value={draft.color} onChange={(color) => setDraft((d) => ({ ...d, color }))} />
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
         {onRemove ? (

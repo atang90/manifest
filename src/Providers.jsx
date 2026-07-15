@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Phone, Mail, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, RowCityStateZip, CollapsibleSection, TagsEditor, TagPills, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, RowCityStateZip, CollapsibleSection, TagsEditor, TagPills, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle } from './ui';
 
 const FIXED_CREDENTIALS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW'];
 
@@ -11,6 +11,7 @@ const BLANK = {
   last_name: '',
   credentials: [],
   tags: [],
+  color: '',
   specialty: '',
   hospital: '',
   address: '',
@@ -64,6 +65,7 @@ export default function Providers({ session }) {
       last_name: p.last_name,
       credentials: p.credentials || [],
       tags: p.tags || [],
+      color: p.color || '',
       specialty: p.specialty,
       hospital: p.hospital,
       address: p.address,
@@ -217,7 +219,7 @@ function ProviderRow({ provider, onEdit, onRemove, onDragStart, onDragOver, onDr
       onClick={onEdit}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      style={{ display: 'flex', alignItems: 'baseline', gap: 10, background: COLORS.panelRaised, border: `1px solid ${COLORS.line}`, borderRadius: 7, padding: '10px 12px', cursor: 'pointer', flexWrap: 'wrap' }}
+      style={{ display: 'flex', alignItems: 'baseline', gap: 10, background: COLORS.panelRaised, ...rowColorStyle(provider.color), borderRadius: 7, padding: '10px 12px', cursor: 'pointer', flexWrap: 'wrap' }}
     >
       <DragHandle onDragStart={onDragStart} />
       <span style={{ fontSize: 13.5, fontWeight: 550 }}>
@@ -337,6 +339,7 @@ function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
 
       <CollapsibleSection title="Tags">
         <TagsEditor tags={draft.tags} onChange={(tags) => setDraft((d) => ({ ...d, tags }))} />
+        <ColorPicker value={draft.color} onChange={(color) => setDraft((d) => ({ ...d, color }))} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Work">

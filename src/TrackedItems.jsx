@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, TagsEditor, TagPills, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, TagsEditor, TagPills, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle } from './ui';
 
-const BLANK = { category: '', item_name: '', tags: [], details: [], notes: '' };
+const BLANK = { category: '', item_name: '', tags: [], color: '', details: [], notes: '' };
 
 export default function TrackedItems({ session }) {
   const [items, setItems] = useState([]);
@@ -36,7 +36,7 @@ export default function TrackedItems({ session }) {
   };
 
   const startEdit = (it) => {
-    setDraft({ category: it.category, item_name: it.item_name, tags: it.tags || [], details: it.details || [], notes: it.notes });
+    setDraft({ category: it.category, item_name: it.item_name, tags: it.tags || [], color: it.color || '', details: it.details || [], notes: it.notes });
     setEditingId(it.id);
   };
 
@@ -158,7 +158,7 @@ function TrackedItemRow({ item, onEdit, onRemove, onDragStart, onDragOver, onDro
       onClick={onEdit}
       onDragOver={onDragOver}
       onDrop={onDrop}
-      style={{ display: 'flex', alignItems: 'baseline', gap: 10, background: COLORS.panelRaised, border: `1px solid ${COLORS.line}`, borderRadius: 7, padding: '10px 12px', cursor: 'pointer', flexWrap: 'wrap' }}
+      style={{ display: 'flex', alignItems: 'baseline', gap: 10, background: COLORS.panelRaised, ...rowColorStyle(item.color), borderRadius: 7, padding: '10px 12px', cursor: 'pointer', flexWrap: 'wrap' }}
     >
       <DragHandle onDragStart={onDragStart} />
       {item.category && (
@@ -223,6 +223,7 @@ function TrackedItemForm({ draft, setDraft, onSave, onCancel, onRemove, saving }
       </Row2>
 
       <TagsEditor tags={draft.tags} onChange={(tags) => setDraft((d) => ({ ...d, tags }))} />
+      <ColorPicker value={draft.color} onChange={(color) => setDraft((d) => ({ ...d, color }))} />
 
       <DetailsEditor details={draft.details} onChange={(details) => setDraft((d) => ({ ...d, details }))} />
 
