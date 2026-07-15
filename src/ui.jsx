@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
-import { GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
+import { GripVertical, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { COLORS } from './theme';
+
+// Preset swatches for freeform tags (sage, amber, clay, teal, blue, purple, pink, gray).
+export const TAG_COLORS = ['#7FA98C', '#D9A441', '#C1613F', '#5B9AA0', '#6B8CAE', '#9B7EBD', '#C97BA5', '#8C8F94'];
 
 export function GlobalStyles() {
   return (
@@ -107,5 +110,101 @@ export function DragHandle({ onDragStart }) {
     >
       <GripVertical size={14} />
     </span>
+  );
+}
+
+// Read-only compact tag pills for a row summary.
+export function TagPills({ tags = [] }) {
+  if (tags.length === 0) return null;
+  return (
+    <>
+      {tags.map((t, i) => (
+        <span
+          key={i}
+          style={{
+            fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999,
+            background: `${t.color}26`, border: `1px solid ${t.color}`, color: t.color,
+          }}
+        >
+          {t.label}
+        </span>
+      ))}
+    </>
+  );
+}
+
+// Freeform tag editor: type a label, pick a preset color, add. Each item's
+// tags are its own independent list -- no shared/reusable tag registry.
+export function TagsEditor({ tags = [], onChange }) {
+  const [draftLabel, setDraftLabel] = useState('');
+  const [draftColor, setDraftColor] = useState(TAG_COLORS[0]);
+
+  const addTag = () => {
+    const label = draftLabel.trim();
+    if (!label) return;
+    onChange([...tags, { label, color: draftColor }]);
+    setDraftLabel('');
+  };
+
+  const removeTag = (i) => onChange(tags.filter((_, idx) => idx !== i));
+
+  return (
+    <Field label="Tags">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {tags.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {tags.map((t, i) => (
+              <span
+                key={i}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '3px 5px 3px 10px', borderRadius: 999,
+                  background: `${t.color}26`, border: `1px solid ${t.color}`, color: t.color, fontSize: 12, fontWeight: 600,
+                }}
+              >
+                {t.label}
+                <button
+                  type="button"
+                  onClick={() => removeTag(i)}
+                  style={{ background: 'none', border: 'none', color: t.color, padding: 2, display: 'flex' }}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <input
+            className="cm-input"
+            style={{ flex: 1 }}
+            value={draftLabel}
+            onChange={(e) => setDraftLabel(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }}
+            placeholder="New tag, e.g. Favorite, Daily, Oncology…"
+          />
+          <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
+            {TAG_COLORS.map((c) => (
+              <button
+                type="button"
+                key={c}
+                onClick={() => setDraftColor(c)}
+                title={c}
+                style={{
+                  width: 18, height: 18, borderRadius: '50%', background: c, padding: 0,
+                  border: draftColor === c ? `2px solid ${COLORS.ink}` : '2px solid transparent',
+                }}
+              />
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={addTag}
+            style={{ background: COLORS.accent, border: 'none', color: '#0E1416', fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 6, flexShrink: 0 }}
+          >
+            Add
+          </button>
+        </div>
+      </div>
+    </Field>
   );
 }

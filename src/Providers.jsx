@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Phone, Mail, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, RowCityStateZip, CollapsibleSection, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, RowCityStateZip, CollapsibleSection, TagsEditor, TagPills, useDragReorder, persistOrder, DragHandle } from './ui';
 
 const FIXED_CREDENTIALS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW'];
 
@@ -10,6 +10,7 @@ const BLANK = {
   first_name: '',
   last_name: '',
   credentials: [],
+  tags: [],
   specialty: '',
   hospital: '',
   address: '',
@@ -62,6 +63,7 @@ export default function Providers({ session }) {
       first_name: p.first_name,
       last_name: p.last_name,
       credentials: p.credentials || [],
+      tags: p.tags || [],
       specialty: p.specialty,
       hospital: p.hospital,
       address: p.address,
@@ -221,6 +223,7 @@ function ProviderRow({ provider, onEdit, onRemove, onDragStart, onDragOver, onDr
       <span style={{ fontSize: 13.5, fontWeight: 550 }}>
         {name}{creds && <span style={{ color: COLORS.inkDim, fontWeight: 500 }}>, {creds}</span>}
       </span>
+      <TagPills tags={provider.tags} />
       {provider.role && (
         <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{provider.role}</span>
       )}
@@ -330,6 +333,10 @@ function ProviderForm({ draft, setDraft, onSave, onCancel, onRemove, saving }) {
           <Field label="Last name"><input className="cm-input" value={draft.last_name} onChange={set('last_name')} placeholder="Smith" /></Field>
         </Row2>
         <CredentialsSelect value={draft.credentials} onChange={(credentials) => setDraft((d) => ({ ...d, credentials }))} />
+      </CollapsibleSection>
+
+      <CollapsibleSection title="Tags">
+        <TagsEditor tags={draft.tags} onChange={(tags) => setDraft((d) => ({ ...d, tags }))} />
       </CollapsibleSection>
 
       <CollapsibleSection title="Work">

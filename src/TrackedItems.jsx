@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, TagsEditor, TagPills, useDragReorder, persistOrder, DragHandle } from './ui';
 
-const BLANK = { category: '', item_name: '', details: [], notes: '' };
+const BLANK = { category: '', item_name: '', tags: [], details: [], notes: '' };
 
 export default function TrackedItems({ session }) {
   const [items, setItems] = useState([]);
@@ -36,7 +36,7 @@ export default function TrackedItems({ session }) {
   };
 
   const startEdit = (it) => {
-    setDraft({ category: it.category, item_name: it.item_name, details: it.details || [], notes: it.notes });
+    setDraft({ category: it.category, item_name: it.item_name, tags: it.tags || [], details: it.details || [], notes: it.notes });
     setEditingId(it.id);
   };
 
@@ -165,6 +165,7 @@ function TrackedItemRow({ item, onEdit, onRemove, onDragStart, onDragOver, onDro
         <span style={{ fontSize: 11, fontWeight: 700, color: COLORS.accent, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{item.category}</span>
       )}
       <span style={{ fontSize: 13.5, fontWeight: 550 }}>{item.item_name || 'Unnamed item'}</span>
+      <TagPills tags={item.tags} />
       {filled.length > 0 && (
         <span style={{ fontSize: 12, color: COLORS.inkDim }}>
           {filled.map((d) => `${d.label}: ${d.value}`).join(' · ')}
@@ -220,6 +221,8 @@ function TrackedItemForm({ draft, setDraft, onSave, onCancel, onRemove, saving }
         <Field label="Category"><input className="cm-input" value={draft.category} onChange={set('category')} placeholder="Medications, Subscriptions, Supplies…" autoFocus /></Field>
         <Field label="Item name"><input className="cm-input" value={draft.item_name} onChange={set('item_name')} placeholder="Metformin, Netflix, Test strips…" /></Field>
       </Row2>
+
+      <TagsEditor tags={draft.tags} onChange={(tags) => setDraft((d) => ({ ...d, tags }))} />
 
       <DetailsEditor details={draft.details} onChange={(details) => setDraft((d) => ({ ...d, details }))} />
 
