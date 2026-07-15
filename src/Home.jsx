@@ -60,7 +60,7 @@ export default function Home({ session }) {
     persistTabOrder
   );
 
-  const signOut = () => supabase.auth.signOut();
+  const signOut = () => supabase.auth.signOut({ scope: 'local' });
 
   return (
     <div style={{ background: COLORS.bg, minHeight: '100vh', fontFamily: "'Inter', ui-sans-serif, system-ui", color: COLORS.ink }}>
