@@ -20,6 +20,8 @@ export function GlobalStyles() {
         border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600;
       }
       .cm-chip.active { background: rgba(91,154,160,0.15); border-color: ${COLORS.accent}; color: ${COLORS.accent}; }
+      .mention-editor { min-height: 160px; white-space: pre-wrap; overflow-wrap: break-word; }
+      .mention-editor:empty::before { content: attr(data-placeholder); color: ${COLORS.inkFaint}; }
     `}</style>
   );
 }

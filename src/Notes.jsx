@@ -38,7 +38,7 @@ function parseBody(text, pool) {
     const [full, label, type, id] = match;
     if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
     const live = pool.find((p) => p.type === type && p.id === id);
-    parts.push({ mention: true, label: live ? live.label : label, missing: !live });
+    parts.push({ mention: true, label: live ? live.label : label, missing: !live, type, id });
     lastIndex = match.index + full.length;
   }
   if (lastIndex < text.length) parts.push(text.slice(lastIndex));
@@ -246,48 +246,55 @@ function NoteRow({ note, mentionPool, onEdit, onRemove, onDragStart, onDragOver,
   );
 }
 
-// Mirrors the textarea's text layout in a hidden div to find the pixel
-// position of a given character offset -- textareas have no native API
-// for this, so the popup can follow the caret like an IDE's autocomplete.
-const CARET_MIRROR_PROPS = [
-  'boxSizing', 'width', 'borderTopWidth', 'borderRightWidth', 'borderBottomWidth', 'borderLeftWidth',
-  'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft',
-  'fontStyle', 'fontVariant', 'fontWeight', 'fontStretch', 'fontSize', 'lineHeight', 'fontFamily',
-  'textAlign', 'textTransform', 'textIndent', 'letterSpacing', 'wordSpacing', 'tabSize',
-];
-
-function getCaretCoordinates(textarea, position) {
-  const div = document.createElement('div');
-  const style = window.getComputedStyle(textarea);
-  CARET_MIRROR_PROPS.forEach((prop) => { div.style[prop] = style[prop]; });
-  div.style.position = 'absolute';
-  div.style.visibility = 'hidden';
-  div.style.whiteSpace = 'pre-wrap';
-  div.style.wordWrap = 'break-word';
-  div.style.top = '0';
-  div.style.left = '-9999px';
-  document.body.appendChild(div);
-
-  div.textContent = textarea.value.slice(0, position);
+function makeChipNode(mention) {
   const span = document.createElement('span');
-  span.textContent = textarea.value.slice(position) || '.';
-  div.appendChild(span);
-
-  const coords = {
-    top: span.offsetTop + parseInt(style.borderTopWidth, 10) - textarea.scrollTop,
-    left: span.offsetLeft + parseInt(style.borderLeftWidth, 10) - textarea.scrollLeft,
-    height: parseInt(style.lineHeight, 10) || span.offsetHeight,
-  };
-  document.body.removeChild(div);
-  return coords;
+  span.contentEditable = 'false';
+  span.dataset.mentionType = mention.type;
+  span.dataset.mentionId = mention.id;
+  span.dataset.mentionLabel = mention.label;
+  span.textContent = mention.label;
+  const bg = mention.missing ? 'rgba(93,110,117,0.15)' : 'rgba(91,154,160,0.15)';
+  const fg = mention.missing ? COLORS.inkFaint : COLORS.accent;
+  span.style.cssText = `padding:1px 6px;border-radius:4px;background:${bg};color:${fg};font-weight:600;white-space:nowrap;`;
+  return span;
 }
 
-function NoteBodyEditor({ value, onChange, mentionPool }) {
-  const textareaRef = useRef(null);
+function isMentionNode(node) {
+  return node.nodeType === Node.ELEMENT_NODE && node.dataset && node.dataset.mentionId;
+}
+
+// Reads the editor's DOM back into the same @[Label](type:id) plain-text
+// format used elsewhere, so the database schema and NoteRow's preview
+// rendering don't need to know this is a rich editor.
+// Walks recursively and defensively -- browsers are inconsistent about
+// whether a line break becomes a <br> or a wrapping <div>/<p>, so both are
+// treated as a newline rather than relying on one specific structure.
+function serializeEditor(root) {
+  let out = '';
+  const walk = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      out += node.textContent;
+    } else if (isMentionNode(node)) {
+      out += `@[${node.dataset.mentionLabel}](${node.dataset.mentionType}:${node.dataset.mentionId})`;
+    } else if (node.nodeName === 'BR') {
+      out += '\n';
+    } else if (node.nodeName === 'DIV' || node.nodeName === 'P') {
+      if (out && !out.endsWith('\n')) out += '\n';
+      node.childNodes.forEach(walk);
+    } else {
+      node.childNodes.forEach(walk);
+    }
+  };
+  root.childNodes.forEach(walk);
+  return out;
+}
+
+function MentionEditor({ value, onChange, mentionPool }) {
+  const editorRef = useRef(null);
   const [query, setQuery] = useState(null); // null = not currently mentioning
-  const [queryStart, setQueryStart] = useState(null);
-  const [caretPos, setCaretPos] = useState({ top: 0, left: 0, height: 0 });
+  const [caretPos, setCaretPos] = useState({ top: 0, left: 0 });
   const [highlighted, setHighlighted] = useState(0);
+  const savedRangeRef = useRef(null);
 
   const matches = useMemo(() => {
     if (query === null) return [];
@@ -296,75 +303,135 @@ function NoteBodyEditor({ value, onChange, mentionPool }) {
   }, [query, mentionPool]);
   const activeIndex = Math.min(highlighted, Math.max(matches.length - 1, 0));
 
-  const handleChange = (e) => {
-    const text = e.target.value;
-    const cursor = e.target.selectionStart;
-    onChange(text);
-    const upToCursor = text.slice(0, cursor);
-    const at = upToCursor.lastIndexOf('@');
-    if (at === -1 || /[\s\n]/.test(upToCursor.slice(at + 1))) {
+  // Build the initial DOM once from the stored plain text. The editor is
+  // uncontrolled after this -- re-rendering on every keystroke would wipe
+  // out the caret position and any chips being interacted with. Cleared
+  // first so this stays correct under React StrictMode's double-invoked
+  // effects in dev (which would otherwise duplicate the content).
+  useEffect(() => {
+    const el = editorRef.current;
+    el.innerHTML = '';
+    const parts = value ? parseBody(value, mentionPool) : [];
+    parts.forEach((p) => {
+      el.appendChild(typeof p === 'string' ? document.createTextNode(p) : makeChipNode(p));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const updateMentionQuery = () => {
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) { setQuery(null); return; }
+    const range = sel.getRangeAt(0);
+    if (!editorRef.current.contains(range.startContainer) || range.startContainer.nodeType !== Node.TEXT_NODE) {
       setQuery(null);
       return;
     }
-    setQuery(upToCursor.slice(at + 1));
-    setQueryStart(at);
+    const textBeforeCaret = range.startContainer.textContent.slice(0, range.startOffset);
+    const at = textBeforeCaret.lastIndexOf('@');
+    if (at === -1 || /[\s\n]/.test(textBeforeCaret.slice(at + 1))) {
+      setQuery(null);
+      return;
+    }
+    setQuery(textBeforeCaret.slice(at + 1));
     setHighlighted(0);
-    setCaretPos(getCaretCoordinates(e.target, cursor));
+    savedRangeRef.current = range.cloneRange();
+    const rect = range.getBoundingClientRect();
+    const containerRect = editorRef.current.getBoundingClientRect();
+    setCaretPos({ top: rect.bottom - containerRect.top, left: rect.left - containerRect.left });
+  };
+
+  const handleInput = () => {
+    onChange(serializeEditor(editorRef.current));
+    updateMentionQuery();
+  };
+
+  const placeCaretAfter = (node) => {
+    const sel = window.getSelection();
+    const range = document.createRange();
+    range.setStartAfter(node);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  // execCommand correctly handles caret restoration for plain-text
+  // insertion (newlines, paste) -- manual Range math got the caret position
+  // wrong in testing, so this is deliberately not hand-rolled like the
+  // mention-chip insertion below, which needs custom DOM nodes anyway.
+  // insertLineBreak (not insertText with an embedded \n) is what reliably
+  // produces a <br> instead of Chrome wrapping a new paragraph in a <div>.
+  const insertPlainText = (text) => {
+    text.split('\n').forEach((line, i) => {
+      if (i > 0) document.execCommand('insertLineBreak');
+      if (line) document.execCommand('insertText', false, line);
+    });
+    onChange(serializeEditor(editorRef.current));
   };
 
   const insertMention = (m) => {
-    const el = textareaRef.current;
-    const cursor = el.selectionStart;
-    const before = value.slice(0, queryStart);
-    const after = value.slice(cursor);
-    const token = `@[${m.label}](${m.type}:${m.id}) `;
-    const next = before + token + after;
-    onChange(next);
+    const range = savedRangeRef.current;
+    if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) return;
+    const node = range.startContainer;
+    const text = node.textContent;
+    const at = text.slice(0, range.startOffset).lastIndexOf('@');
+    const before = text.slice(0, at);
+    const after = text.slice(range.startOffset);
+
+    const chip = makeChipNode({ label: m.label, type: m.type, id: m.id, missing: false });
+    const spaceNode = document.createTextNode(' ');
+    const beforeNode = document.createTextNode(before);
+    const afterNode = document.createTextNode(after);
+    const parent = node.parentNode;
+    parent.insertBefore(beforeNode, node);
+    parent.insertBefore(chip, node);
+    parent.insertBefore(spaceNode, node);
+    parent.insertBefore(afterNode, node);
+    parent.removeChild(node);
+
+    placeCaretAfter(spaceNode);
     setQuery(null);
-    requestAnimationFrame(() => {
-      const pos = before.length + token.length;
-      el.focus();
-      el.setSelectionRange(pos, pos);
-    });
+    editorRef.current.focus();
+    onChange(serializeEditor(editorRef.current));
   };
 
   const handleKeyDown = (e) => {
-    if (query === null || matches.length === 0) return;
-    if (e.key === 'ArrowDown') {
+    if (query !== null && matches.length > 0) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setHighlighted((i) => (i + 1) % matches.length); return; }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setHighlighted((i) => (i - 1 + matches.length) % matches.length); return; }
+      if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); insertMention(matches[activeIndex]); return; }
+      if (e.key === 'Escape') { e.preventDefault(); setQuery(null); return; }
+    }
+    if (e.key === 'Enter') {
       e.preventDefault();
-      setHighlighted((i) => (i + 1) % matches.length);
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setHighlighted((i) => (i - 1 + matches.length) % matches.length);
-    } else if (e.key === 'Enter' || e.key === 'Tab') {
-      e.preventDefault();
-      insertMention(matches[activeIndex]);
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      setQuery(null);
+      insertPlainText('\n');
     }
   };
 
-  const textareaWidth = textareaRef.current ? textareaRef.current.clientWidth : 300;
-  const dropdownLeft = Math.max(0, Math.min(caretPos.left, textareaWidth - 220));
+  const handlePaste = (e) => {
+    e.preventDefault();
+    insertPlainText((e.clipboardData || window.clipboardData).getData('text/plain'));
+  };
+
+  const editorWidth = editorRef.current ? editorRef.current.clientWidth : 300;
+  const dropdownLeft = Math.max(0, Math.min(caretPos.left, editorWidth - 220));
 
   return (
     <div style={{ position: 'relative' }}>
-      <textarea
-        ref={textareaRef}
-        className="cm-input"
-        rows={8}
-        value={value}
-        onChange={handleChange}
+      <div
+        ref={editorRef}
+        contentEditable
+        suppressContentEditableWarning
+        onInput={handleInput}
         onKeyDown={handleKeyDown}
+        onPaste={handlePaste}
         onBlur={() => setTimeout(() => setQuery(null), 150)}
-        placeholder="Write freely… type @ to link a contact or tracked item"
-        style={{ resize: 'vertical' }}
+        data-placeholder="Write freely… type @ to link a contact or tracked item"
+        className="cm-input mention-editor"
       />
       {query !== null && matches.length > 0 && (
         <div
           style={{
-            position: 'absolute', top: caretPos.top + caretPos.height + 2, left: dropdownLeft, minWidth: 200,
+            position: 'absolute', top: caretPos.top + 4, left: dropdownLeft, minWidth: 200,
             background: COLORS.panel, border: `1px solid ${COLORS.line}`, borderRadius: 6,
             zIndex: 10, maxHeight: 170, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           }}
@@ -403,7 +470,7 @@ function NoteForm({ draft, setDraft, onSave, onCancel, onRemove, saving, mention
         <Field label="Date (optional)"><input className="cm-input" type="date" value={draft.entry_date} onChange={set('entry_date')} /></Field>
       </div>
       <Field label="Notes">
-        <NoteBodyEditor value={draft.body} onChange={(body) => setDraft((d) => ({ ...d, body }))} mentionPool={mentionPool} />
+        <MentionEditor value={draft.body} onChange={(body) => setDraft((d) => ({ ...d, body }))} mentionPool={mentionPool} />
       </Field>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 2 }}>
