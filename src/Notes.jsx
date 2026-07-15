@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Plus, X, Trash2, Link2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle, SearchInput } from './ui';
 
 const BLANK = { title: '', body: '', entry_date: '', color: '' };
 
@@ -20,6 +20,14 @@ function formatDate(d) {
 
 function contactLabel(c) {
   return [c.first_name, c.last_name].filter(Boolean).join(' ') || 'Unnamed';
+}
+
+function noteMatches(note, query, pool) {
+  if (!query) return true;
+  const bodyParts = note.body ? parseBody(note.body, pool) : [];
+  const bodyText = bodyParts.map((p) => (typeof p === 'string' ? p : p.label)).join(' ');
+  const haystack = [note.title, bodyText].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(query);
 }
 
 function buildMentionPool(contacts, trackedItems) {
@@ -54,6 +62,7 @@ export default function Notes({ session }) {
   const [editingId, setEditingId] = useState(null); // note id, or 'new'
   const [draft, setDraft] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -159,14 +168,21 @@ export default function Notes({ session }) {
         <p style={{ color: COLORS.inkDim, fontSize: 13 }}>Loading…</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {notes.length > 0 && (
+            <SearchInput value={search} onChange={setSearch} placeholder="Search notes…" />
+          )}
           {notes.length === 0 && editingId !== 'new' && (
             <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No notes yet.</p>
+          )}
+          {notes.length > 0 && !notes.some((n) => noteMatches(n, search.trim().toLowerCase(), mentionPool) || editingId === n.id) && (
+            <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No notes match your search.</p>
           )}
           {editingId === 'new' && (
             <NoteForm draft={draft} setDraft={setDraft} onSave={save} onCancel={cancelEdit} saving={saving} mentionPool={mentionPool} />
           )}
-          {notes.map((n, i) =>
-            editingId === n.id ? (
+          {notes.map((n, i) => {
+            if (!noteMatches(n, search.trim().toLowerCase(), mentionPool) && editingId !== n.id) return null;
+            return editingId === n.id ? (
               <NoteForm
                 key={n.id}
                 draft={draft}
@@ -188,8 +204,8 @@ export default function Notes({ session }) {
                 onDragOver={handleDragOver}
                 onDrop={handleDrop(i)}
               />
-            )
-          )}
+            );
+          })}
         </div>
       )}
 
