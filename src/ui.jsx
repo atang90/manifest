@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GripVertical, ChevronDown, ChevronRight, X } from 'lucide-react';
+import { GripVertical, ChevronDown, ChevronRight, X, Search } from 'lucide-react';
 import { COLORS } from './theme';
 
 // Preset swatches for freeform tags (sage, amber, clay, teal, blue, purple, pink, gray).
@@ -26,6 +26,32 @@ export function GlobalStyles() {
       .mention-editor { min-height: 160px; white-space: pre-wrap; overflow-wrap: break-word; }
       .mention-editor:empty::before { content: attr(data-placeholder); color: ${COLORS.inkFaint}; }
     `}</style>
+  );
+}
+
+// Client-side text filter above a list -- no server-side search needed at
+// personal-data scale.
+export function SearchInput({ value, onChange, placeholder = 'Search…' }) {
+  return (
+    <div style={{ position: 'relative', marginBottom: 10 }}>
+      <Search size={13} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: COLORS.inkFaint, pointerEvents: 'none' }} />
+      <input
+        className="cm-input"
+        style={{ paddingLeft: 30, paddingRight: value ? 30 : 10 }}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+      {value && (
+        <button
+          onClick={() => onChange('')}
+          title="Clear search"
+          style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: COLORS.inkFaint, padding: 4, display: 'flex' }}
+        >
+          <X size={13} />
+        </button>
+      )}
+    </div>
   );
 }
 

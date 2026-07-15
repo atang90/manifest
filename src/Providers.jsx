@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Phone, Mail, Printer, MapPin, Building2, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, RowCityStateZip, CollapsibleSection, TagsEditor, TagPills, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, RowCityStateZip, CollapsibleSection, TagsEditor, TagPills, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle, SearchInput } from './ui';
 
 const FIXED_CREDENTIALS = ['MD', 'DO', 'NP', 'PA', 'RN', 'DDS', 'DPM', 'PharmD', 'PhD', 'LCSW'];
 
@@ -37,6 +37,7 @@ export default function Providers({ session }) {
   const [editingId, setEditingId] = useState(null); // provider id, or 'new'
   const [draft, setDraft] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -147,11 +148,18 @@ export default function Providers({ session }) {
         <p style={{ color: COLORS.inkDim, fontSize: 13 }}>Loading…</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {providers.length > 0 && (
+            <SearchInput value={search} onChange={setSearch} placeholder="Search contacts…" />
+          )}
           {providers.length === 0 && editingId !== 'new' && (
             <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No contacts yet.</p>
           )}
-          {providers.map((p, i) =>
-            editingId === p.id ? (
+          {providers.length > 0 && !providers.some((p) => providerMatches(p, search.trim().toLowerCase()) || editingId === p.id) && (
+            <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No contacts match your search.</p>
+          )}
+          {providers.map((p, i) => {
+            if (!providerMatches(p, search.trim().toLowerCase()) && editingId !== p.id) return null;
+            return editingId === p.id ? (
               <ProviderForm
                 key={p.id}
                 draft={draft}
@@ -171,8 +179,8 @@ export default function Providers({ session }) {
                 onDragOver={handleDragOver}
                 onDrop={handleDrop(i)}
               />
-            )
-          )}
+            );
+          })}
           {editingId === 'new' && (
             <ProviderForm
               draft={draft}
@@ -195,6 +203,19 @@ export default function Providers({ session }) {
       )}
     </div>
   );
+}
+
+function providerMatches(provider, query) {
+  if (!query) return true;
+  const haystack = [
+    provider.first_name, provider.last_name, ...(provider.credentials || []),
+    provider.specialty, provider.hospital, provider.role,
+    provider.address, provider.address_city, provider.address_state,
+    provider.address_2, provider.address_2_city, provider.address_2_state,
+    provider.phone, provider.phone_2, provider.fax, provider.email, provider.notes,
+    ...(provider.tags || []).map((t) => t.label),
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(query);
 }
 
 function fullName(provider) {

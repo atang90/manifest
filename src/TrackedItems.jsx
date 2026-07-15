@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, X, Trash2 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 import { COLORS } from './theme';
-import { Field, Row2, TagsEditor, TagPills, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle } from './ui';
+import { Field, Row2, TagsEditor, TagPills, ColorPicker, rowColorStyle, useDragReorder, persistOrder, DragHandle, SearchInput } from './ui';
 
 const BLANK = { category: '', item_name: '', tags: [], color: '', details: [], notes: '' };
 
@@ -13,6 +13,7 @@ export default function TrackedItems({ session }) {
   const [editingId, setEditingId] = useState(null); // item id, or 'new'
   const [draft, setDraft] = useState(BLANK);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -101,11 +102,18 @@ export default function TrackedItems({ session }) {
         <p style={{ color: COLORS.inkDim, fontSize: 13 }}>Loading…</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {items.length > 0 && (
+            <SearchInput value={search} onChange={setSearch} placeholder="Search tracked items…" />
+          )}
           {items.length === 0 && editingId !== 'new' && (
             <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>Nothing tracked yet.</p>
           )}
-          {items.map((it, i) =>
-            editingId === it.id ? (
+          {items.length > 0 && !items.some((it) => trackedItemMatches(it, search.trim().toLowerCase()) || editingId === it.id) && (
+            <p style={{ color: COLORS.inkFaint, fontSize: 13 }}>No tracked items match your search.</p>
+          )}
+          {items.map((it, i) => {
+            if (!trackedItemMatches(it, search.trim().toLowerCase()) && editingId !== it.id) return null;
+            return editingId === it.id ? (
               <TrackedItemForm
                 key={it.id}
                 draft={draft}
@@ -125,8 +133,8 @@ export default function TrackedItems({ session }) {
                 onDragOver={handleDragOver}
                 onDrop={handleDrop(i)}
               />
-            )
-          )}
+            );
+          })}
           {editingId === 'new' && (
             <TrackedItemForm
               draft={draft}
@@ -149,6 +157,16 @@ export default function TrackedItems({ session }) {
       )}
     </div>
   );
+}
+
+function trackedItemMatches(item, query) {
+  if (!query) return true;
+  const haystack = [
+    item.category, item.item_name, item.notes,
+    ...(item.tags || []).map((t) => t.label),
+    ...(item.details || []).flatMap((d) => [d.label, d.value]),
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(query);
 }
 
 function TrackedItemRow({ item, onEdit, onRemove, onDragStart, onDragOver, onDrop }) {
